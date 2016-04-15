@@ -6,7 +6,7 @@ Author: Erol Biceroglu
 Maintainer: Erol Biceroglu <erol.biceroglu@alumni.utoronto.ca>
 Description: Tools for portfolio management and algorithmic trading
 Depends:
-    xts, RMTstat, fGarch, ggplot2, reshape2, scales, RColorBrewer, ggrepel
+    xts, RMTstat, fGarch, ggplot2, reshape2, scales, RColorBrewer
 Imports:
     zoo,
     xts,
@@ -26,8 +26,7 @@ Imports:
     ggplot2,
     reshape2,
     scales,
-    RColorBrewer,
-    ggrepel
+    RColorBrewer
 Suggests:
     PerformanceAnalytics, robust
 License: GPL-2

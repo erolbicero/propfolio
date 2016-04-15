@@ -1,0 +1,19 @@
+#' create matrix of price differences for the optimization step
+#'
+#' @param simulatedHorizonPrices
+#' @param horizonPriceVector
+#'
+#' @return matrix of price differences
+#'
+#' @examples
+#' none
+#'
+#' @export
+horizonPnLs<-function(simulatedHorizonPrices, horizonPriceVector){
+  horizonPnL <- lapply(1:ncol(simulatedHorizonPrices)
+                       ,function(horizonCol){
+                         return(simulatedHorizonPrices[,horizonCol] - horizonPriceVector[horizonCol])
+                       })
+  horizonPnL <- do.call(cbind,horizonPnL)
+  return(horizonPnL)
+}

@@ -1,0 +1,9 @@
+#create PnL function
+horizonPnLs<-function(simulatedHorizonPrices, horizonPriceVector){
+  horizonPnL <- lapply(1:ncol(simulatedHorizonPrices)
+                       ,function(horizonCol){
+                         return(simulatedHorizonPrices[,horizonCol] - horizonPriceVector[horizonCol])
+                       })
+  horizonPnL <- do.call(cbind,horizonPnL)
+  return(horizonPnL)
+}

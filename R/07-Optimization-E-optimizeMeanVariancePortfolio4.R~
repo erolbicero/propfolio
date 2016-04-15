@@ -1,0 +1,318 @@
+#' Optimize mean variance portfolio using Meucci's methods (holdings and simulated prices at the horizon)
+#'
+#' @param meanVector is a vector of mean price changes
+#' @param covarianceMatrix is a square, semi-positive definite covariance matrix of price changes
+#' @param horizonPriceVector is a vector of security prices at the horizon
+#' @param horizonPnLMatrix is a matrix of prices changes at the horizon
+#' @param wealthBalance is the balance in the account (used to calculate holdings)
+#' @param maxWeightConstraint is a list of symbols what will be subject to a max inverse volatility weight
+#' @param colNames names of symbols
+#' @param longOnly logical, whether to keep the original OHLC xts matrices or to drop them
+#'
+#' @return a list of quadratic programming efficient frontier results
+#'
+#' @examples
+#' none
+#'
+#' @export
+
+###FOR THE LAST ONE
+##NOW TRY WITH LOWER BOUND
+optimizeMeanVariancePortfolio4 <- function(meanVector, covarianceMatrix, horizonPriceVector, horizonPnLMatrix, wealthBalance, maxWeightConstraint, colNames,longOnly){
+  loopCounter <- 0
+  restartCounter <- 0
+  returnBoundary <- 10000
+  resetReturnBoundary <- returnBoundary
+  #returnBoundaryFloor <- -1000
+  returnBoundaryFloor <- 0 #this will start here, but move to -10000
+  setReturnBoundaryFloor <- FALSE
+  
+  boundaryStepFloor <- 1000
+  resetReturnBoundaryFloor <- returnBoundaryFloor
+  
+  isRunRequired <- TRUE
+  numRuns <- 1000
+  boundaryStep <- 1000
+  
+  isUpperBoundFound <- FALSE
+  
+  minHoldings <- ifelse(longOnly,0,-10000) #these are holdings
+  
+  covarianceMatrixReturnsBased <- covRob(data = sapply(1:length(horizonPriceVector),function(x){horizonPnLMatrix[,x] / horizonPriceVector[x]}))$cov
+  
+  while(isRunRequired)
+  {
+    frontierSequence <- seq(  from = mean(meanVector)*returnBoundaryFloor
+                              , to = mean(meanVector)*returnBoundary
+                              , len = numRuns
+    )
+    
+    isRunRequired <- FALSE
+    isError <- FALSE
+    
+    
+    #the return boundary can cause errors, so we shrink it until we get feasible solutions
+    tryCatch( 
+      { #start of expressions
+        print(paste("Try boundary",returnBoundary,"and step",boundaryStep))
+        print(paste("Try boundary FLOOR",returnBoundaryFloor,"and stepFLOOR",boundaryStepFloor))
+        QuadProgFrontier <- lapply( frontierSequence
+                                    
+                                    ,function(x){
+                                      numSecurities <- ncol(covarianceMatrix)
+                                      solution<-solve.QP(Dmat = covarianceMatrix
+                                                         , dvec = meanVector
+                                                         , Amat = t(rbind(   rep(1,numSecurities)*horizonPriceVector #full budget invest
+                                                                             , rep(1,numSecurities)*meanVector #min return
+                                                                             , diag(numSecurities) #greater than 0, no shorting
+                                                                             , diag(numSecurities)*-1*horizonPriceVector #max allocation
+                                                         ))
+                                                         , bvec = c(        wealthBalance #full budget invest
+                                                                            , x #vary minimum return required
+                                                                            ,rep(minHoldings,numSecurities) #greater than 0, no shorting
+                                                                            , rep(-wealthBalance,numSecurities)*ifelse(colNames %in% maxWeightConstraint$names, maxWeightConstraint$maxWeight, maxWeightConstraint$constraintWeight)
+                                                         )
+                                                         , meq = 2)
+                                      #if this passes
+                                      
+                                      return(solution$solution)
+                                      
+                                    }
+        )
+        
+      } #end of expressions
+      , error = function(e){
+        loopCounter <<- loopCounter + 1
+        if(returnBoundary == resetReturnBoundary & returnBoundaryFloor == resetReturnBoundaryFloor){print(paste("Error, reducing boundary"))}
+        
+        
+        #else { #step down and try again
+        if(isUpperBoundFound==FALSE){
+          ####returnBoundary <<- max(frontierSequence) ###
+          returnBoundary <<- returnBoundary - boundaryStep
+          print(paste("In error section, return boundary = ", returnBoundary, "return step = ", boundaryStep))
+          
+          
+          
+          if(returnBoundary<=1 ){#& returnBoundary>=0){
+            
+            #returnBoundaryFloor <<- returnBoundaryFloor + boundaryStep
+            ####returnBoundary <<- max(frontierSequence) ###
+            returnBoundary <<- returnBoundary + boundaryStep #resetReturnBoundary
+            boundaryStep <<- boundaryStep/2 #cut step in half
+            
+            print(paste("Error bound hit, so resetting and adjusting, Boundary step", boundaryStep, "and return bondary", returnBoundary))
+          }
+          
+          #           if(boundaryStep<=1e-10 & returnBoundary>1){
+          #             #returnBoundaryFloor <<- returnBoundaryFloor + boundaryStep
+          #             ####returnBoundary <<- max(frontierSequence) ###
+          #             boundaryStep <<- 10
+          #             returnBoundary <<- returnBoundary + boundaryStep #resetReturnBoundary
+          #             boundaryStep <<- boundaryStep/2 #cut step in half
+          #             
+          #             print(paste("Error bound hit, so resetting and adjusting, Boundary step", boundaryStep, "and return bondary", returnBoundary))
+          #           }
+          #           
+          #           if(boundaryStep<=1e-10 & returnBoundary<=1){
+          #             #returnBoundaryFloor <<- returnBoundaryFloor + boundaryStep
+          #             ####returnBoundary <<- max(frontierSequence) ###
+          #             returnBoundary <<- -1
+          #             boundaryStep <<- -10
+          #             returnBoundary <<- returnBoundary + boundaryStep #resetReturnBoundary
+          #             boundaryStep <<- boundaryStep/2 #cut step in half
+          #             
+          #             print(paste("Error bound hit, so resetting and adjusting, Boundary step", boundaryStep, "and return bondary", returnBoundary))
+          #           }
+          
+        }
+        
+        if(isUpperBoundFound){
+          print(paste("Error on the lower side for floor", returnBoundaryFloor, "and step floor", boundaryStepFloor))
+          if(setReturnBoundaryFloor==FALSE){
+            # # #returnBoundary <<- returnBoundary - 0.005
+            returnBoundary <<- max(frontierSequence)
+            returnBoundaryFloor <<- -10000
+            setReturnBoundaryFloor <<- TRUE
+          }
+          else{
+            returnBoundaryFloor <<- returnBoundaryFloor + boundaryStepFloor
+          }
+          
+          if(returnBoundaryFloor >= (returnBoundary/10) & boundaryStepFloor >= 1 ){
+            
+            returnBoundaryFloor <<- returnBoundaryFloor*0 - boundaryStepFloor #resetReturnBoundary
+            boundaryStepFloor <<- boundaryStepFloor/2 #cut step in half
+            
+            print(paste("Error bound hit, so resetting and adjusting, Boundary step FLOOR", boundaryStepFloor, "and return bondary FLOOR", returnBoundaryFloor))
+          }
+          #FAIL CASE TO RESTART
+          if((returnBoundaryFloor >= 0 & boundaryStepFloor < 1) | loopCounter >= 200){
+            returnBoundary <<- returnBoundary - 0.1 #the outer edge is causing the failure, so bring it in and restart
+            
+            returnBoundaryFloor <<- -10000
+            boundaryStepFloor <<- 1000
+            loopCounter <<- ifelse(loopCounter >=200,100,loopCounter)
+            restartCounter <<- restartCounter + 1
+            
+            print(paste("Error bound hit, so resetting and adjusting, Boundary step FLOOR", boundaryStepFloor, "and return bondary FLOOR", returnBoundaryFloor))
+          }
+          
+        }
+        
+        #print(paste("Error, reducing boundary floor to", returnBoundaryFloor))
+        isError <<- TRUE
+        isRunRequired <<- TRUE
+      }
+      #, finally = {print("Completed")}
+    )
+    
+    #print(paste("Stop not triggered, return boundary = ", returnBoundary, "return step = ", boundaryStep))
+    
+    ##THIS IS NO LONGER IN THE FUNCTIONS, SO THEY"RE NOT "GLOBAL" VARIABLES
+    if(boundaryStep > 0.005 & isError == FALSE & isUpperBoundFound == FALSE){
+      print("so if statement triggered, no error")
+      
+      print(paste("so pre adjustment is returnbuondary", returnBoundary,"and step", boundaryStep))
+      ####returnBoundary <- max(frontierSequence) ###
+      returnBoundary <- returnBoundary + boundaryStep #restore boundary to previous run
+      boundaryStep <- boundaryStep/2 #cut step in half
+      
+      print(paste("Lowering Boundary step to",boundaryStep,"increasing return boundary to ",returnBoundary))
+      
+      isRunRequired <- TRUE
+      
+    }
+    
+    #start search for lower bound
+    if(boundaryStep <= 0.005 & isError == FALSE & isUpperBoundFound == FALSE){
+      isUpperBoundFound <- TRUE 
+      # isRunRequired <- TRUE
+    }
+    
+    if(boundaryStepFloor > 0.005 & isError == FALSE & isUpperBoundFound){
+      print("so if statement triggered, no error")
+      
+      if(setReturnBoundaryFloor==FALSE){
+        # # returnBoundary <<- returnBoundary - 0.005 #the outer edge is causing the failure, so bring it in and restart
+        
+        returnBoundaryFloor <- -10000
+        setReturnBoundaryFloor <- TRUE
+      }
+      
+      print(paste("so pre adjustment is returnbuondary FLOOR", returnBoundaryFloor,"and step FLOOR", boundaryStepFloor))
+      
+      returnBoundaryFloor <- returnBoundaryFloor - boundaryStepFloor #restore boundary to previous run
+      boundaryStepFloor <- boundaryStepFloor/2 #cut step in half
+      
+      print(paste("Lowering Boundary step FLOOR to",boundaryStepFloor,"increasing return boundary FLOOR to ",returnBoundaryFloor))
+      
+      isRunRequired <- TRUE
+      
+    }
+    
+    #     if(boundaryStepFloor <= 0.005 & isError == FALSE & isUpperBoundFound){
+    #       
+    #       isRunRequired <- FALSE
+    #     }
+    loopCounter <- loopCounter + 1  
+    #Kill it.
+    if(boundaryStep <= 1e-10){ isRunRequired <- FALSE  }
+    if(restartCounter >= 2){ isRunRequired <- FALSE  }
+  }
+  print("Completed")
+  
+  #print(QuadProgFrontier)
+  
+  #now calculate statistics
+  QuadProgFrontierStats <- lapply(QuadProgFrontier
+                                  ,function(Holdings){
+                                    holdingToWeight <- as.vector((Holdings * horizonPriceVector)/sum(Holdings * horizonPriceVector))
+                                    covariance <- covarianceMatrixReturnsBased
+                                    
+                                    portfolioValue <- sum(as.vector(Holdings * horizonPriceVector))
+                                    
+                                    
+                                    aggResult <- list(
+                                      weights = holdingToWeight
+                                      , holdings = as.vector(Holdings)
+                                      , expectedReturns = sum(as.vector(Holdings * meanVector)/portfolioValue)
+                                      , standardDeviation = sqrt(holdingToWeight %*%  covariance %*% holdingToWeight)
+                                    )
+                                    
+                                    return(aggResult)
+                                    
+                                  }
+  )
+  #   ####ER --->>> 
+  #   sum(
+  #     as.vector(QuadProdFrontier[[1]] * apply(SectorSPDRHorizonPnL,2,mean)
+  #     )
+  #     /
+  #       sum(QuadProdFrontier[[1]] * coredata(SectorSPDRPrices[nrow(SectorSPDRPrices),]))
+  #   )
+  #print(paste("holdings: ",QuadProgFrontierStats[[1]]$holdings))
+  #print(paste("std: ",QuadProgFrontierStats[[1]]$standardDeviation))
+  
+  holdings<-do.call(rbind,lapply(QuadProgFrontierStats
+                                 ,function(FStats){
+                                   HLD<-round(FStats$holdings,5)
+                                   return(HLD)
+                                 }
+  )
+  )
+  
+  expectedReturn<-sapply(QuadProgFrontierStats
+                         ,function(FStats){
+                           ER<-round(FStats$expectedReturns,5)
+                           return(ER)
+                         }
+  )
+  
+  standardDeviation<-sapply(QuadProgFrontierStats
+                            ,function(FStats){
+                              SD<-round(FStats$standardDeviation,5)
+                              return(SD)
+                            }
+  )
+  ###standardDeviation <- do.call(c,standardDeviation)
+  #Why are there two of these?
+  weights<-lapply(QuadProgFrontierStats
+                  ,function(FStats){
+                    WT<-round(FStats$weights,5)
+                    return(WT)
+                  }
+  )
+  
+  #print(class(weights))
+  #print(weights)
+  
+  #   weights <- lapply(weights
+  #                     ,function(wRow){
+  #                       wt<-(wRow*horizonPriceVector)/sum(wRow*horizonPriceVector)
+  #                       return(wt)
+  #                     }
+  #   )
+  
+  weights <- do.call(rbind, weights)  
+  
+  optimalIdx <- which((expectedReturn/standardDeviation)==max(expectedReturn/standardDeviation))
+  
+  
+  QuadProgFrontierResults <- list(holdings = holdings
+                                  , weights = weights
+                                  , expectedReturn = expectedReturn
+                                  , standardDeviation = standardDeviation
+                                  , optimalResult = list(holdings = holdings[optimalIdx,]
+                                                         , weights = weights[optimalIdx,]
+                                                         , expectedReturn = expectedReturn[optimalIdx]
+                                                         , standardDeviation = standardDeviation[optimalIdx]
+                                                         , noriskSharpe = expectedReturn[optimalIdx]/standardDeviation[optimalIdx]
+                                                         , optimalIndex = optimalIdx
+                                                         , returnBoundary = returnBoundary
+                                  )
+  )
+  print(paste("Loop Counter:",loopCounter))
+  return(QuadProgFrontierResults)
+  
+}
