@@ -4,7 +4,6 @@
 #' @param plotTitle character string of plot title
 #' @param yTitle character string of y-axis title; defaults to "Annualized Return"
 #' @param xTitle title for x-axis, defaults to "Annualized Risk"
-#' @param scale is a character string, one of "daily", "weekly", "monthly", "quarterly", "yearly"
 #' @param interactive logical, whether or not to render in plotly for interactive use of plot; defaults to FALSE
 #'
 #' @return a timeseries plot (ggplot)
@@ -13,7 +12,21 @@
 #' none
 #'
 #' @export
-plotRiskReturnScatter <- function(xtsTimeSeriesObject, plotTitle, yTitle = "Annualized Return", xTitle = "Annualized Risk", scale = "daily", interactive = FALSE){
+plotRiskReturnScatter <- function(xtsTimeSeriesObject, plotTitle, yTitle = "Annualized Return", xTitle = "Annualized Risk", riskType = "SD", interactive = FALSE){
+  
+  if(!(riskType %in% c("SD", "ETL", "VaR"))){
+    stop("riskType must be one of SD, ETL or VaR")
+    }
+  
+  scale <- xts::periodicity(xtsTimeSeriesObject[,1])$scale
+  
+  xTitle <- paste(xTitle
+                  , switch(riskType
+                           , SD = "(Volatility)"
+                           , ETL = "(Expected Tail Loss 95%)"
+                           , VaR = "(Value at Risk 95%)"
+                          )
+              )
   
   scalingFactor <- 
     switch(scale
@@ -24,14 +37,71 @@ plotRiskReturnScatter <- function(xtsTimeSeriesObject, plotTitle, yTitle = "Annu
            , yearly = 1
     )
   
-  
+  #convert to yearly periodicity for ETL and VaR
+  if(riskType %in% c("ETL", "VaR")){
+    
+                              xtsTimeSeriesObjectAnnual <- do.call(merge,lapply(xtsTimeSeriesObject
+                                                                              , function(x){
+                                                                                        indexLevel <- cumprod(x+1)
+                                                                                        return(indexLevel)
+                                                                                            }
+                                                                                )
+                                                                      )
+                              
+                              previousDate <- 
+                                switch(scale
+                                       , daily = addPeriodToDate(initialDate = index(xtsTimeSeriesObjectAnnual)[1], period = "days", numPeriods = -1)
+                                       , weekly = addPeriodToDate(initialDate = index(xtsTimeSeriesObjectAnnual)[1], period = "weeks", numPeriods = -1)
+                                       , monthly = addPeriodToDate(initialDate = index(xtsTimeSeriesObjectAnnual)[1], period = "months", numPeriods = -1)
+                                       , quarterly = addPeriodToDate(initialDate = index(xtsTimeSeriesObjectAnnual)[1], period = "months", numPeriods = -3)
+                                       , yearly = addPeriodToDate(initialDate = index(xtsTimeSeriesObjectAnnual)[1], period = "years", numPeriods = -1)
+                                )
+
+                              
+                              dummyRow <-
+                              xts::xts(x = 1
+                                       , order.by = previousDate
+                              )
+                              
+                              if(ncol(xtsTimeSeriesObjectAnnual) > 1){
+                                        for(i in 2:ncol(xtsTimeSeriesObjectAnnual)){
+                                                                                  dummyRow <- merge(dummyRow
+                                                                                                    , xts::xts(x = 1
+                                                                                                             , order.by = previousDate
+                                                                                                              )
+                                                                                                  )
+                                                                                  }
+                                
+                                                                    }
+                              
+                              
+                              xtsTimeSeriesObjectAnnual <- rbind(dummyRow
+                                                                , xtsTimeSeriesObjectAnnual
+                                                                )
+    
+                              xtsTimeSeriesObjectAnnual <- xts::to.yearly(     x = xtsTimeSeriesObjectAnnual
+                                                                          , OHLC = FALSE
+                                                                         )
+                              
+                              xtsTimeSeriesObjectAnnual <- retMatrixL(xtsTimeSeriesObjectAnnual)
+                              
+                                  }
   
   
   scatterData <-
     data.frame(
       Names = colnames(xtsTimeSeriesObject)
-      , Risk = as.vector(PerformanceAnalytics::StdDev.annualized(xtsTimeSeriesObject, scale = scalingFactor))
-      , Return = as.vector(PerformanceAnalytics::Return.annualized(xtsTimeSeriesObject, scale = scalingFactor))
+      , Risk = switch(riskType
+                        , SD = as.vector(PerformanceAnalytics::StdDev.annualized(xtsTimeSeriesObject, scale = scalingFactor))
+                        , ETL = -as.vector(PerformanceAnalytics::ETL(xtsTimeSeriesObjectAnnual))
+                        , VaR = -as.vector(PerformanceAnalytics::VaR(xtsTimeSeriesObjectAnnual))
+                    )
+      , Return = switch(riskType
+                        , SD = as.vector(PerformanceAnalytics::Return.annualized(xtsTimeSeriesObject, scale = scalingFactor))
+                        , ETL = as.vector(PerformanceAnalytics::Return.annualized(xtsTimeSeriesObjectAnnual, scale = 1))
+                        , VaR = as.vector(PerformanceAnalytics::Return.annualized(xtsTimeSeriesObjectAnnual, scale = 1))
+                        )
+        
       , facetTitle = plotTitle
       , stringsAsFactors = FALSE
     )
