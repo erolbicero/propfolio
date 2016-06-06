@@ -1,104 +1,139 @@
 #' create index of time-stamps for vectorized functions
 #'
 #' @param initialTimeVector vector of dates YYYY-MM-DD
-#' @param endTimeDate default to Sys.Date()
-#' @param isExpanding logical, default FALSE
+#' @param estimationLength a positive integer indicating the size of the estimation period
+#' @param timeUnit a character string, one of "weeks", "days","weeks","months","years", indicating the unit size for estimationLength and investmentHorizon
+#' @param investmentHorizonLength a positive integer indicating the size of the investment horizon (out of sample period)
 #'
-#' @return vector of YYYY-MM dates
+#' @return a character matrix of xts-subsettable date ranges, one column for the in-sample periods, and another for the out-of-sample periods
 #'
 #' @examples
-#' none
+#' FUNCTION STILL UNDER DEVELOPMENT
 #'
 #' @export
-createRollingTimeIndices <- function(initialTimeVector ,endTimeDate = Sys.Date() ,isExpanding = FALSE){
+createRollingTimeIndices <- function(initialTimeVector
+                                            , estimationLength = 18 #window size
+                                            , timeUnit = "months" #c("days","weeks","months","years")
+                                            , investmentHorizonLength = 1
+                                            , windowType = "rolling" #"anchored"
+                                            #, snap = FALSE #works only for months, weeks, years; snap to begin/end of period (e.g. Year is Jan 1/Dec 31, month is 1st to last, week is Mon/Fri etc and weeks, snap to
+                                           
+){
+
+  #need to handle "snap"
+  #need to handle anchored
+  #need to do error checks
   
-  ###Concatenate this to everything if expanding
+  #estimation length *must* be greater than horizon length
+  if(estimationLength < investmentHorizonLength){stop("estimationgLength must be greater than or equal to investmentHorizonLength")}
   
-  firstDay <- initialTimeVector[1]
-  lastDay <-  initialTimeVector[length(initialTimeVector)]
-  nextMonthDate <- nextMonth(lastDay)
+  workingTimeVector <- initialTimeVector
+  dateIndices <- NULL
+  firstRun <- TRUE
   
-  monthIDX <- lubridate::month(firstDay) #as.numeric(month(nextMonthDate))
-  yearIDX <- lubridate::year(firstDay) #as.numeric(year(nextMonthDate))
-  yearIDXend <- lubridate::year(endTimeDate)
-  monthIDXend <- lubridate::month(endTimeDate)
+  while(TRUE){
   
-  #first pass
-  dateIndices <- paste0("/",yearIDX,"-",monthIDX:12)
+  ###beginningPeriodDate <- xts::first(workingTimeVector)
+  ###estimationPeriod <- beginningPeriodDate
+  if(windowType == "rolling"){
+                              estimationPeriod <- xts::first(workingTimeVector)
+
+                              estimationPeriod  <- paste0(estimationPeriod + ifelse(!firstRun & estimationLength == investmentHorizonLength,1,0)
+                                                          ,"/"
+                                                          ,addPeriodToDate(initialDate = estimationPeriod
+                                                                           , period = timeUnit
+                                                                           , numPeriods = estimationLength
+                                                          )
+                                                          )
+                              
+                              } else {
+                                    if(windowType == "anchored"){
+                                          estimationPeriod <- xts::first(initialTimeVector)
+                                          
+                                          estimationPeriod  <- paste0(estimationPeriod
+                                                                      ,"/"
+                                                                      ,addPeriodToDate(initialDate = xts::first(workingTimeVector)
+                                                                                       , period = timeUnit
+                                                                                       , numPeriods = estimationLength
+                                                                      )
+                                                                      )
+                                          
+                                          
+                                          
+                                          
+                                        } else {
+                                          stop("invalid windowType, must be \"rolling\" or \"anchored\"")
+                                        }
+                              }
   
-  #subsequent passes
-  dateIndices <- c(dateIndices,c(sapply( (yearIDX+1):(yearIDXend-1)
-                                         ,function(yearIDXNum){
-                                           paste0("/",yearIDXNum,"-",1:12)
-                                         }
-                                         
-  )))
+                                      
   
-  #final pass
-  dateIndices <- c(dateIndices, paste0("/",yearIDXend,"-",1:monthIDXend))
+  # ifelse(windowType == "rolling"
+  #        , xts::first(workingTimeVector)
+  #        , ifelse(windowType == "anchored"
+  #                 , xts::first(initialTimeVector)
+  #                 , stop("invalid windowType, must be \"rolling\" or \"anchored\"")
+  #        )
+  # )
   
-  if(isExpanding){
-    
-    #as.numeric(as.Date("2001-01-10")-as.Date("2001-01-01"))
-    #dateDifference <- as.numeric(as.Date(lastDay)-as.Date(firstDay))
-    #forwardAnchoredDate <- as.Date(lastDay) + dateDifference
-    forwardAnchoredDate <- prevMonth(firstDay)
-    endForwardAnchoredDate <- prevMonth(endTimeDate)
-    
-    ###fwd <- as.Date("2015-01-10") + as.numeric(as.Date("2015-01-10")-as.Date("2015-01-01"))
-    ###as.Date(ifelse(isWeekend(fwd),ifelse(isWeekend(fwd-1),ifelse(isWeekend(fwd-2),"",fwd) ,fwd),fwd))
-    ###rm(fwd)
-    #     forwardAnchoredDate <-
-    #       as.Date(
-    #         ifelse(isWeekend(forwardAnchoredDate)
-    #                ,ifelse(
-    #                  isWeekend(forwardAnchoredDate+1)
-    #                  ,ifelse(
-    #                    isWeekend(forwardAnchoredDate+2)
-    #                    ,""
-    #                    ,forwardAnchoredDate) 
-    #                  ,forwardAnchoredDate)
-    #                ,forwardAnchoredDate)
-    #       )
-    #     
-    #     endForwardAnchoredDate <- as.Date(lastDay) - dateDifference
-    #     endForwardAnchoredDate <-
-    #       as.Date(
-    #         ifelse(isWeekend(endForwardAnchoredDate)
-    #                ,ifelse(
-    #                  isWeekend(endForwardAnchoredDate+1)
-    #                  ,ifelse(
-    #                    isWeekend(endForwardAnchoredDate+2)
-    #                    ,""
-    #                    ,endForwardAnchoredDate) 
-    #                  ,endForwardAnchoredDate)
-    #                ,endForwardAnchoredDate)
-    #       )
-    
-    
-    
-    #if it's a rolling window
-    #anchorDate <- paste0(year(forwardAnchoredDate),"-",month(forwardAnchoredDate))
-    
-    
-    anchorIndices <- paste0(lubridate::year(forwardAnchoredDate),"-",lubridate::month(forwardAnchoredDate):12)
-    #paste0(year(anchorDate),"-",month(anchorDate))
-    #print(anchorIndices)
-    anchorIndices <- c(anchorIndices,c(sapply( (   lubridate::year(forwardAnchoredDate)+1):(lubridate::year(endForwardAnchoredDate)-1)
-                                               ,function(yearIDXNum){
-                                                 paste0(yearIDXNum,"-",1:12)
-                                               }
-                                               
-    )))
-    
-    anchorIndices <- c(anchorIndices, paste0(lubridate::year(endForwardAnchoredDate),"-",1:lubridate::month(endForwardAnchoredDate)))
-    
-    dateIndices <- paste0(anchorIndices,dateIndices)
-    
+  # estimationPeriod  <- paste0(estimationPeriod
+  #                               ,"/"
+  #                               ,addPeriodToDate(initialDate = estimationPeriod
+  #                                               , period = timeUnit
+  #                                               , numPeriods = estimationLength
+  #                                                 )
+  #                               )
+  
+  OOSPeriod <- addPeriodToDate(initialDate = splitTimeRange(timeRangeString = estimationPeriod
+                                                            , dateSelect = "last"
+                                                            )
+                                  , period = timeUnit
+                                  , numPeriods = investmentHorizonLength)
+  
+  #check if stop
+  if(OOSPeriod > xts::last(initialTimeVector)){break}
+  
+  OOSPeriod <- paste0(splitTimeRange(timeRangeString = estimationPeriod
+                                     , dateSelect = "last"
+                                      ) + 1
+                      ,"/"
+                      ,OOSPeriod
+                      )
+  
+  pseudoISPeriodDate <-  splitTimeRange(timeRangeString = estimationPeriod
+                                      , dateSelect = "last"
+                                        )
+  pseudoISPeriodPlot <- paste0(addPeriodToDate(initialDate = pseudoISPeriodDate
+                                               , period = timeUnit
+                                               , numPeriods = -investmentHorizonLength
+                                               ) + 1 #if you don't add 1, then there's overlap on the end date
+                              ,"/"
+                              ,pseudoISPeriodDate
+                              )
+  
+  dateIndices <- rbind(dateIndices
+                ,cbind(
+                      estimationPeriod = estimationPeriod 
+                    , OOSPeriod = OOSPeriod
+                    , pseudoISPeriodPlot = pseudoISPeriodPlot
+                    )
+                )
+  
+  #remove investment horizon length from beginning
+  newEndDate <- splitTimeRange(timeRangeString = OOSPeriod, dateSelect = "last")
+  removalTimePeriod <- addPeriodToDate(initialDate = newEndDate ###beginningPeriodDate
+                                       , period = timeUnit
+                                       , numPeriods = -estimationLength ###investmentHorizonLength
+                                      )
+  workingTimeVector <- xtsFilter(  timeVector = workingTimeVector
+                                 , dateRangeString = paste0(removalTimePeriod ####+ 1
+                                                            ,"/"
+                                                            )
+                                 )
+  
+  firstRun <- FALSE
   }
   
   return(dateIndices)
-  #return(anchorIndices)
-  
-  
+
 }
