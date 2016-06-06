@@ -4,24 +4,27 @@
 \alias{createRollingTimeIndices}
 \title{create index of time-stamps for vectorized functions}
 \usage{
-createRollingTimeIndices(initialTimeVector, endTimeDate = Sys.Date(),
-  isExpanding = FALSE)
+createRollingTimeIndices(initialTimeVector, estimationLength = 18,
+  timeUnit = "months", investmentHorizonLength = 1,
+  windowType = "rolling")
 }
 \arguments{
 \item{initialTimeVector}{vector of dates YYYY-MM-DD}
 
-\item{endTimeDate}{default to Sys.Date()}
+\item{estimationLength}{a positive integer indicating the size of the estimation period}
 
-\item{isExpanding}{logical, default FALSE}
+\item{timeUnit}{a character string, one of "weeks", "days","weeks","months","years", indicating the unit size for estimationLength and investmentHorizon}
+
+\item{investmentHorizonLength}{a positive integer indicating the size of the investment horizon (out of sample period)}
 }
 \value{
-vector of YYYY-MM dates
+a character matrix of xts-subsettable date ranges, one column for the in-sample periods, and another for the out-of-sample periods
 }
 \description{
 create index of time-stamps for vectorized functions
 }
 \examples{
-none
+FUNCTION STILL UNDER DEVELOPMENT
 
 }
 

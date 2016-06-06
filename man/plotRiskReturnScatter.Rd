@@ -6,7 +6,7 @@
 \usage{
 plotRiskReturnScatter(xtsTimeSeriesObject, plotTitle,
   yTitle = "Annualized Return", xTitle = "Annualized Risk",
-  scale = "daily")
+  riskType = "SD", interactive = FALSE)
 }
 \arguments{
 \item{xtsTimeSeriesObject}{an xts matrix of *returns*}
@@ -17,7 +17,7 @@ plotRiskReturnScatter(xtsTimeSeriesObject, plotTitle,
 
 \item{xTitle}{title for x-axis, defaults to "Annualized Risk"}
 
-\item{scale}{is a character string, one of "daily", "weekly", "monthly", "quarterly", "yearly"}
+\item{interactive}{logical, whether or not to render in plotly for interactive use of plot; defaults to FALSE}
 }
 \value{
 a timeseries plot (ggplot)
