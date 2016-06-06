@@ -105,7 +105,13 @@ optimizeMeanVariancePortfolio <- function(meanVector, covarianceMatrix, horizonP
   weights <- do.call(rbind, weights)  
   
   optimalIdx <- which((expectedReturn/standardDeviation)==max(expectedReturn/standardDeviation))
+  #in case there are multiple, take the largest one
+  optimalIdx <- last(optimalIdx)
   
+  #this is in case there are multiple min SDs
+  minVarIdx <- which(standardDeviation==min(standardDeviation))
+  minVarIdx <- minVarIdx[expectedReturn[minVarIdx]==max(expectedReturn[minVarIdx])]
+  minVarIdx <- last(minVarIdx)
   
   QuadProgFrontierResults <- list(holdings = holdings
                                   , weights = weights
@@ -117,6 +123,13 @@ optimizeMeanVariancePortfolio <- function(meanVector, covarianceMatrix, horizonP
                                                          , standardDeviation = standardDeviation[optimalIdx]
                                                          , noriskSharpe = expectedReturn[optimalIdx]/standardDeviation[optimalIdx]
                                                          , optimalIndex = optimalIdx
+                                  )
+                                  , minVarResult = list(holdings = holdings[minVarIdx,]
+                                                         , weights = weights[minVarIdx,]
+                                                         , expectedReturn = expectedReturn[minVarIdx]
+                                                         , standardDeviation = standardDeviation[minVarIdx]
+                                                         , noriskSharpe = expectedReturn[minVarIdx]/standardDeviation[minVarIdx]
+                                                         , minVarIndex = minVarIdx
                                   )
   )
   
