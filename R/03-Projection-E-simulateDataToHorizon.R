@@ -29,7 +29,7 @@ simulateDataToHorizon <- function(numSimulations, numPeriodsForward, vineCopulaF
                                    else {BiCopSim(N = numSimulations, family = vineCopulaFit$family, par = vineCopulaFit$par, par2 = vineCopulaFit$par2)}
                                    
                                    
-                                   
+                                   #Simulate the first signal distribution
                                    MetaDistributionSignal <- qsstd(  p = VineCopulaSim[,1]
                                                                      , mean = signalMarginalFit[[1]]$estimate["mean"]
                                                                      , sd =   signalMarginalFit[[1]]$estimate["sd"]
@@ -37,19 +37,45 @@ simulateDataToHorizon <- function(numSimulations, numPeriodsForward, vineCopulaF
                                                                      , xi =   signalMarginalFit[[1]]$estimate["xi"]
                                    )
                                    
-                                   MetaDistributionNoise  <- rstd(   n = numSimulations
-                                                                     , mean = residualMarginalFit[[1]]$mean
-                                                                     , sd =   residualMarginalFit[[1]]$sd
-                                                                     , nu =   residualMarginalFit[[1]]$nu
-                                   )
-                                   
-                                   
-                                   
-                                   for(x in 2:(length(signalMarginalFit)))
-                                   {
-                                     MetaDistributionSignal <- cbind(MetaDistributionSignal, qsstd(p = VineCopulaSim[,x], mean = signalMarginalFit[[x]]$estimate["mean"], sd = signalMarginalFit[[x]]$estimate["sd"], nu = signalMarginalFit[[x]]$estimate["nu"], xi = signalMarginalFit[[x]]$estimate["xi"]))
+                                   if(length(which(is.nan(MetaDistributionSignal))) > 0){
+                                     MetaDistributionSignal <- fixNaNsInSimulatedData( copulaVector = VineCopulaSim[,1]
+                                                                                            , simulatedDataVector = MetaDistributionSignal
+                                                                                            , numSimulations = numSimulations
+                                     )
                                    }
                                    
+                                   #Simulate the first noise distribution
+                                   if(length(residualMarginalFit[[1]])==2){ #If Normal Distribution
+                                     MetaDistributionNoise <- rnorm( n = numSimulations
+                                                                , mean = residualMarginalFit[[1]]$mean
+                                                                , sd = residualMarginalFit[[1]]$sd
+                                                                )
+                                     
+                                   } else{ #else: student T
+                                     MetaDistributionNoise <- rstd(   n = numSimulations
+                                                                 , mean = residualMarginalFit[[1]]$mean
+                                                                 , sd =   residualMarginalFit[[1]]$sd
+                                                                 , nu =   residualMarginalFit[[1]]$nu
+                                                                  )
+                                   }
+
+                                   #Simulate remianing signal distribution
+                                   for(x in 2:(length(signalMarginalFit)))
+                                   {
+                                     #check for NaN values before appending
+                                     simulatedSkewStudentTVector <- qsstd(p = VineCopulaSim[,x], mean = signalMarginalFit[[x]]$estimate["mean"], sd = signalMarginalFit[[x]]$estimate["sd"], nu = signalMarginalFit[[x]]$estimate["nu"], xi = signalMarginalFit[[x]]$estimate["xi"])
+                                     
+                                     if(length(which(is.nan(simulatedSkewStudentTVector))) > 0){
+                                       simulatedSkewStudentTVector <- fixNaNsInSimulatedData( copulaVector = VineCopulaSim[,x]
+                                                                                            , simulatedDataVector = simulatedSkewStudentTVector
+                                                                                            , numSimulations = numSimulations
+                                                                                            )
+                                       }
+                                     
+                                     MetaDistributionSignal <- cbind(MetaDistributionSignal, simulatedSkewStudentTVector)
+                                   }
+                                   
+                                   #Simulate remianing noise distribution
                                    for(z in 2:(length(residualMarginalFit)))
                                    {
                                      if(length(residualMarginalFit[[z]])==2){ #If Normal Distribution
