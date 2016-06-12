@@ -47,7 +47,7 @@ rbind(
 , `VaR 99` = PerformanceAnalytics::VaR(R = linearReturnMatrix, p = 0.99)
 , `ETL 95` = PerformanceAnalytics::ETL(R = linearReturnMatrix, p = 0.95)
 , `ETL 99` = PerformanceAnalytics::ETL(R = linearReturnMatrix, p = 0.99)
-, `Worst Loss` = t(data.frame(apply(linearReturnMatrix,2,min)))
+, `Worst Loss` = t(data.frame(apply(linearReturnMatrix,2, min ,na.rm = TRUE)))
 , PerformanceAnalytics::skewness(x = linearReturnMatrix)
 , PerformanceAnalytics::kurtosis(x = linearReturnMatrix)
 )
