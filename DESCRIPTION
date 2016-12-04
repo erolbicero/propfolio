@@ -1,12 +1,12 @@
 Package: propfolio
 Title: Propfolio Management
-Version: 1.0
+Version: 1.1
 Date: 2016-03-31
 Author: Erol Biceroglu
 Maintainer: Erol Biceroglu <erol.biceroglu@alumni.utoronto.ca>
 Description: Tools for portfolio management and algorithmic trading
 Depends:
-    xts, RMTstat, fGarch
+    xts, RMTstat, fGarch, tsc
 Imports:
     zoo,
     xts,
