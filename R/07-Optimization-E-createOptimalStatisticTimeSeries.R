@@ -68,12 +68,12 @@ createOptimalStatisticTimeSeries <- function(optimizationResultsObject, statisti
                                               ,function(x){
                                                 
                                                 if(statisticName[2] == "expectedReturn"){
-                                                  statisticResult <- annualizeReturn(  rawReturn = x[[statisticName[1]]][[statisticName[2]]]
+                                                  statisticResult <- tsconv:::annualizeReturn(  rawReturn = x[[statisticName[1]]][[statisticName[2]]]
                                                                                        , freq = optimizationFreq
                                                                                        , geometric = TRUE
                                                   )
                                                 } else {
-                                                  statisticResult <- annualizeStandardDeviation(rawStandardDeviation = x[[statisticName[1]]][[statisticName[2]]]
+                                                  statisticResult <- tsconv:::annualizeStandardDeviation(rawStandardDeviation = x[[statisticName[1]]][[statisticName[2]]]
                                                                                                 , freq = optimizationFreq
                                                   )
                                                 }
@@ -95,8 +95,8 @@ createOptimalStatisticTimeSeries <- function(optimizationResultsObject, statisti
     
     
     if(indexType == "timeSeries"){
-      rawDateSequence <- data.frame(   splitTimeRange(timeRangeString = optimizationDateIndices, dateSelect = "first")
-                                       , splitTimeRange(timeRangeString = optimizationDateIndices, dateSelect = "last")
+      rawDateSequence <- data.frame(   tsconv:::splitTimeRange(timeRangeString = optimizationDateIndices, dateSelect = "first")
+                                       , tsconv:::splitTimeRange(timeRangeString = optimizationDateIndices, dateSelect = "last")
                                        , stringsAsFactors = FALSE
       )
       rawDateSequence <- toRowList(matrixToConvert = rawDateSequence)
@@ -106,7 +106,7 @@ createOptimalStatisticTimeSeries <- function(optimizationResultsObject, statisti
       , daily = lapply(X = rawDateSequence
                        , FUN = function(x){
                          return(
-                           createWeekdaySequence( start = x[1] #as.Date(x[1])
+                           tsconv:::createWeekdaySequence( start = x[1] #as.Date(x[1])
                                                   , end = x[2] #as.Date(x[2])
                            )
                          )
@@ -115,7 +115,7 @@ createOptimalStatisticTimeSeries <- function(optimizationResultsObject, statisti
       , weekly = lapply(X = rawDateSequence
                         , FUN = function(x){
                           return(
-                            createWeeklySequence( start = x[1] #as.Date(x[1])
+                            tsconv:::createWeeklySequence( start = x[1] #as.Date(x[1])
                                                    , end = x[2] #as.Date(x[2])
                             )
                           )
@@ -124,7 +124,7 @@ createOptimalStatisticTimeSeries <- function(optimizationResultsObject, statisti
       , monthly = lapply(X = rawDateSequence
                          , FUN = function(x){
                            return(
-                             createMonthlySequence( start = x[1] #as.Date(x[1])
+                             tsconv:::createMonthlySequence( start = x[1] #as.Date(x[1])
                                                    , end = x[2] #as.Date(x[2])
                              )
                            )
@@ -133,7 +133,7 @@ createOptimalStatisticTimeSeries <- function(optimizationResultsObject, statisti
       , yearly = lapply(X = rawDateSequence
                         , FUN = function(x){
                           return(
-                            createYearlySequence( start = x[1] #as.Date(x[1])
+                            tsconv:::createYearlySequence( start = x[1] #as.Date(x[1])
                                                    , end = x[2] #as.Date(x[2])
                             )
                           )
@@ -202,12 +202,12 @@ createOptimalStatisticTimeSeries <- function(optimizationResultsObject, statisti
         statisticList<-  lapply(optimizationResultsObject$portfolioStats
                                 ,function(x){
                                   if(statisticName == "expectedReturn"){            
-                                    statisticResult <- annualizeReturn(rawReturn = x[[statisticName]]
+                                    statisticResult <- tsconv:::annualizeReturn(rawReturn = x[[statisticName]]
                                                                        , freq = optimizationFreq
                                                                        , geometric = TRUE
                                     )
                                   } else {
-                                    statisticResult <- annualizeStandardDeviation(rawStandardDeviation = x[[statisticName]]
+                                    statisticResult <- tsconv:::annualizeStandardDeviation(rawStandardDeviation = x[[statisticName]]
                                                                                   , freq = optimizationFreq
                                     )
                                     
@@ -232,10 +232,10 @@ createOptimalStatisticTimeSeries <- function(optimizationResultsObject, statisti
                               ,function(x){
                                 if(annualize){
                                   resultMatrix <-
-                                    cbind( `Standard Deviation` = annualizeStandardDeviation(rawStandardDeviation = x[[statisticName[2]]]
+                                    cbind( `Standard Deviation` = tsconv:::annualizeStandardDeviation(rawStandardDeviation = x[[statisticName[2]]]
                                                                                              , freq = optimizationFreq
                                     )
-                                    ,`Expected Return ` = annualizeReturn(rawReturn = x[[statisticName[1]]]
+                                    ,`Expected Return ` = tsconv:::annualizeReturn(rawReturn = x[[statisticName[1]]]
                                                                           , freq = optimizationFreq
                                                                           , geometric = TRUE
                                     )
