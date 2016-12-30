@@ -48,25 +48,28 @@ fitCopula <- function(dataObject){
         copulaModel <- list()
         
         #fit a R-vine copula
+        
+        # try 2-3-14-16 (student, clayton, 180-gumbel, 180-joe)
         copulaModel[[1]] <- VineCopula::RVineStructureSelect(
           data = dataObject
           , type = 0 #R-vine
           , familyset = c(
-            1  # = Gaussian copula 
-            , 2  # = Student t copula (t-copula)
+            # 1  # = Gaussian copula 
+            # , 
+            2  # = Student t copula (t-copula)
             , 3  # = Clayton copula 
-            , 4  # = Gumbel copula 
-            , 5  # = Frank copula 
-            , 6  # = Joe copula 
-            , 13 # = rotated Clayton copula (180 degrees; “survival Clayton”) 
+            # , 4  # = Gumbel copula 
+            # , 5  # = Frank copula 
+            # , 6  # = Joe copula 
+            # , 13 # = rotated Clayton copula (180 degrees; “survival Clayton”) 
             , 14 # = rotated Gumbel copula (180 degrees; “survival Gumbel”) 
             , 16 # = rotated Joe copula (180 degrees; “survival Joe”) 
-            , 23 # = rotated Clayton copula (90 degrees) 
-            , 24 # = rotated Gumbel copula (90 degrees) 
-            , 26 # = rotated Joe copula (90 degrees) 
-            , 33 # = rotated Clayton copula (270 degrees) 
-            , 34 # = rotated Gumbel copula (270 degrees) 
-            , 36 # = rotated Joe copula (270 degrees) 
+            # , 23 # = rotated Clayton copula (90 degrees) 
+            # , 24 # = rotated Gumbel copula (90 degrees) 
+            # , 26 # = rotated Joe copula (90 degrees) 
+            # , 33 # = rotated Clayton copula (270 degrees) 
+            # , 34 # = rotated Gumbel copula (270 degrees) 
+            # , 36 # = rotated Joe copula (270 degrees) 
           )
           
         )
@@ -76,21 +79,22 @@ fitCopula <- function(dataObject){
           data = dataObject
           , type = 1 #C-vine
           , familyset = c(
-            1  # = Gaussian copula 
-            , 2  # = Student t copula (t-copula)
+            # 1  # = Gaussian copula 
+            # , 
+            2  # = Student t copula (t-copula)
             , 3  # = Clayton copula 
-            , 4  # = Gumbel copula 
-            , 5  # = Frank copula 
-            , 6  # = Joe copula 
-            , 13 # = rotated Clayton copula (180 degrees; “survival Clayton”) 
+            # , 4  # = Gumbel copula 
+            # , 5  # = Frank copula 
+            # , 6  # = Joe copula 
+            # , 13 # = rotated Clayton copula (180 degrees; “survival Clayton”) 
             , 14 # = rotated Gumbel copula (180 degrees; “survival Gumbel”) 
             , 16 # = rotated Joe copula (180 degrees; “survival Joe”) 
-            , 23 # = rotated Clayton copula (90 degrees) 
-            , 24 # = rotated Gumbel copula (90 degrees) 
-            , 26 # = rotated Joe copula (90 degrees) 
-            , 33 # = rotated Clayton copula (270 degrees) 
-            , 34 # = rotated Gumbel copula (270 degrees) 
-            , 36 # = rotated Joe copula (270 degrees) 
+            # , 23 # = rotated Clayton copula (90 degrees) 
+            # , 24 # = rotated Gumbel copula (90 degrees) 
+            # , 26 # = rotated Joe copula (90 degrees) 
+            # , 33 # = rotated Clayton copula (270 degrees) 
+            # , 34 # = rotated Gumbel copula (270 degrees) 
+            # , 36 # = rotated Joe copula (270 degrees) 
           )
           
         )
